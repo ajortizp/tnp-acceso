@@ -10,10 +10,11 @@
 </head>
 <body>
   <main class="app-shell">
+
     <section id="consulta" class="screen">
       <header class="hero">
-        <div class="hero-overlay"></div>
         <img src="assets/metro-logo.svg" alt="Metro de Santiago" class="metro-logo">
+
         <div class="hero-copy">
           <h1>CONTROL DE ACCESO</h1>
           <p class="site-name">Taller Neptuno</p>
@@ -24,24 +25,25 @@
       <section class="content">
         <div class="avatar" aria-hidden="true">
           <svg viewBox="0 0 24 24">
-            <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0"/>
-            <path d="m16.5 14.7 1.4 1.4 2.7-3"/>
+            <circle cx="12" cy="8" r="4"></circle>
+            <path d="M4.5 21a7.5 7.5 0 0 1 15 0"></path>
           </svg>
         </div>
 
-        <div class="section-heading">
-          <span class="scan-icon" aria-hidden="true">⌗</span>
-          <h2>INGRESA TU RUT</h2>
-        </div>
-        <p class="instructions">Escribe tu RUT y presiona validar para verificar tu autorización de acceso.</p>
+        <h2>INGRESA TU RUT</h2>
+        <p class="instructions">
+          Escribe tu RUT y presiona validar para verificar tu autorización de acceso.
+        </p>
 
         <form id="form-rut" novalidate>
           <label for="rut">RUT <span>(con o sin puntos y guion)</span></label>
+
           <div class="input-wrap">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="8" r="4"></circle>
               <path d="M4 21a8 8 0 0 1 16 0"></path>
             </svg>
+
             <input
               id="rut"
               name="rut"
@@ -55,16 +57,17 @@
               required
             >
           </div>
+
           <p id="error" class="error" role="alert" aria-live="polite"></p>
+
           <button id="validar" type="submit">
-            <span aria-hidden="true">⌄</span>
             VALIDAR ACCESO
           </button>
         </form>
 
         <aside class="info-card">
           <div class="info-title">
-            <span aria-hidden="true">ⓘ</span>
+            <span aria-hidden="true">i</span>
             <strong>INFORMACIÓN IMPORTANTE</strong>
           </div>
           <ul>
@@ -75,17 +78,29 @@
       </section>
 
       <footer class="footer-bar">
-        <div>
-          <span class="footer-icon">◷</span>
-          <p>FECHA Y HORA ACTUAL</p>
-          <strong id="footer-date"></strong>
-          <time id="footer-time"></time>
+        <div class="footer-item">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 2"></path>
+          </svg>
+          <div>
+            <p>FECHA Y HORA ACTUAL</p>
+            <strong id="footer-date"></strong>
+            <time id="footer-time"></time>
+          </div>
         </div>
+
         <div class="footer-divider"></div>
-        <div>
-          <span class="footer-icon">♢</span>
-          <p>SISTEMA SEGURO</p>
-          <span class="footer-copy">Validación local protegida</span>
+
+        <div class="footer-item">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3 4.5 6v5.5c0 4.5 3 7.8 7.5 9.5 4.5-1.7 7.5-5 7.5-9.5V6L12 3Z"></path>
+            <path d="m8.8 12 2.1 2.1 4.5-4.5"></path>
+          </svg>
+          <div>
+            <p>SISTEMA SEGURO</p>
+            <span class="footer-copy">Validación local protegida</span>
+          </div>
         </div>
       </footer>
     </section>
@@ -108,19 +123,31 @@
           <small>Cambia automáticamente cada 30 segundos.</small>
         </div>
 
-        <div class="identity-check"><strong>VERIFICAR IDENTIDAD</strong><p>El personal de seguridad debe comparar este RUT con la cédula del trabajador.</p><p id="rut-masked" class="masked"></p></div>
-        <button id="otra-consulta" type="button" class="secondary">NUEVA CONSULTA</button>
+        <div class="identity-check">
+          <strong>VERIFICACIÓN DE IDENTIDAD</strong>
+          <p>El personal de seguridad debe comparar este RUT con la cédula del trabajador.</p>
+          <p id="rut-masked" class="masked"></p>
+        </div>
+
+        <button id="otra-consulta" type="button" class="secondary">
+          NUEVA CONSULTA
+        </button>
       </div>
 
       <footer class="result-footer">
-        <span>◷</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 7v5l3 2"></path>
+        </svg>
         <div>
           <small>FECHA Y HORA ACTUAL</small>
           <strong id="result-clock"></strong>
         </div>
       </footer>
     </section>
+
   </main>
+
   <script src="js/app.js" defer></script>
 </body>
 </html>
