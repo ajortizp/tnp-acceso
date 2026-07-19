@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080d13">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Control de Acceso | Taller Neptuno</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section id="consulta" class="screen">
+      <header class="hero">
+        <div class="hero-overlay"></div>
+        <img src="assets/metro-logo.png" alt="Metro de Santiago" class="metro-logo">
+        <div class="hero-copy">
+          <h1>CONTROL DE ACCESO</h1>
+          <p class="site-name">Taller Neptuno</p>
+          <p class="site-caption">Sistema de validación de ingreso</p>
+        </div>
+      </header>
+
+      <section class="content">
+        <div class="avatar" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0"/>
+            <path d="m16.5 14.7 1.4 1.4 2.7-3"/>
+          </svg>
+        </div>
+
+        <div class="section-heading">
+          <span class="scan-icon" aria-hidden="true">⌗</span>
+          <h2>INGRESA TU RUT</h2>
+        </div>
+        <p class="instructions">Escribe tu RUT y presiona validar para verificar tu autorización de acceso.</p>
+
+        <form id="form-rut" novalidate>
+          <label for="rut">RUT <span>(con o sin puntos y guion)</span></label>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="8" r="4"></circle>
+              <path d="M4 21a8 8 0 0 1 16 0"></path>
+            </svg>
+            <input
+              id="rut"
+              name="rut"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+              placeholder="Ej: 12.345.678-9"
+              maxlength="14"
+              required
+            >
+          </div>
+          <p id="error" class="error" role="alert" aria-live="polite"></p>
+          <button id="validar" type="submit">
+            <span aria-hidden="true">⌄</span>
+            VALIDAR ACCESO
+          </button>
+        </form>
+
+        <aside class="info-card">
+          <div class="info-title">
+            <span aria-hidden="true">ⓘ</span>
+            <strong>INFORMACIÓN IMPORTANTE</strong>
+          </div>
+          <ul>
+            <li>La validación confirma si el RUT aparece en la nómina autorizada.</li>
+            <li>Si no está autorizado, dirígete al punto de registro manual.</li>
+          </ul>
+        </aside>
+      </section>
+
+      <footer class="footer-bar">
+        <div>
+          <span class="footer-icon">◷</span>
+          <p>FECHA Y HORA ACTUAL</p>
+          <strong id="footer-date"></strong>
+          <time id="footer-time"></time>
+        </div>
+        <div class="footer-divider"></div>
+        <div>
+          <span class="footer-icon">♢</span>
+          <p>SISTEMA SEGURO</p>
+          <span class="footer-copy">Validación local protegida</span>
+        </div>
+      </footer>
+    </section>
+
+    <section id="resultado" class="result-screen hidden" aria-live="assertive">
+      <header class="result-header">
+        <img src="assets/metro-logo.png" alt="Metro de Santiago" class="result-logo">
+        <span>TALLER NEPTUNO</span>
+      </header>
+
+      <div class="result-body">
+        <div id="estado-icono" class="status-icon"></div>
+        <h2 id="estado-titulo"></h2>
+        <p id="estado-detalle"></p>
+
+        <div id="comprobante" class="proof hidden">
+          <span>CÓDIGO DE VALIDACIÓN</span>
+          <strong id="codigo"></strong>
+          <time id="hora"></time>
+          <small>Cambia automáticamente cada 30 segundos.</small>
+        </div>
+
+        <p id="rut-masked" class="masked"></p>
+        <button id="otra-consulta" type="button" class="secondary">NUEVA CONSULTA</button>
+      </div>
+
+      <footer class="result-footer">
+        <span>◷</span>
+        <div>
+          <small>FECHA Y HORA ACTUAL</small>
+          <strong id="result-clock"></strong>
+        </div>
+      </footer>
+    </section>
+  </main>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
