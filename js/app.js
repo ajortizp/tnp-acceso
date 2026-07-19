@@ -40,8 +40,7 @@ async function sha256(text) {
   return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 function maskRut(rut) {
-  const normalized = normalizeRut(rut);
-  return `RUT consultado: •••••${normalized.slice(-4)}`;
+  return `RUT validado: ${formatRut(rut)}`;
 }
 function codeForCurrentWindow(rut) {
   const windowNumber = Math.floor(Date.now() / 30000);

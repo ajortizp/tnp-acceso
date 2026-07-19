@@ -396,3 +396,27 @@ input::placeholder {
   .app-shell { min-height: calc(100vh - 48px); border-radius: 24px; overflow: hidden; }
   .screen, .result-screen { min-height: calc(100vh - 48px); }
 }
+
+.identity-check {
+  margin: 18px 0 8px;
+  padding: 16px;
+  border: 2px solid currentColor;
+  border-radius: 14px;
+  background: rgba(255,255,255,.72);
+}
+.identity-check strong {
+  display: block;
+  font-size: .78rem;
+  letter-spacing: .08em;
+}
+.identity-check p {
+  margin: 7px 0 0;
+  color: #344054;
+  font-size: .84rem;
+  line-height: 1.4;
+}
+.identity-check .masked {
+  color: #101828;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
