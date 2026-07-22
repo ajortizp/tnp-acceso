@@ -1,18 +1,30 @@
-# TNP Acceso — versión 3
+# Control de Acceso TNP — Pack versión 2.0
 
-Versión visual limpia del portal móvil de validación de acceso.
+Este paquete contiene los archivos necesarios para integrar la aplicación web
+con una bitácora privada en Google Sheets.
 
-## Cambios principales
-- Encabezado negro con curva limpia.
-- Eliminación de línea roja decorativa.
-- Icono de usuario simplificado.
-- Eliminación de símbolos extra del título y botón.
-- Mejora de espaciado, input, tarjetas y footer.
-- Pantallas de resultado más claras.
-- RUT completo visible para comparación con cédula.
-- Se mantiene la validación local mediante hashes SHA-256.
+## Contenido
 
-## Limitaciones
-- No registra ingresos.
-- No bloquea duplicados diarios entre teléfonos.
-- No consulta SharePoint en tiempo real.
+- `js/app.js`: reemplazo completo del archivo JavaScript del sitio.
+- `apps-script/Code.gs`: código completo para Google Apps Script.
+- `docs/ARQUITECTURA.md`: descripción de la arquitectura.
+- `docs/DESPLIEGUE.md`: instrucciones de instalación y prueba.
+
+## Estructura esperada del Google Sheets
+
+### Pestaña: Bitacora Accesos
+
+| Folio | Fecha | Hora | RUT | Resultado | Usuario | Empresa |
+
+### Pestaña: Nomina
+
+| RUT | Usuario | Empresa |
+
+La pestaña `Nomina` debe permanecer privada y protegida. Apps Script se ejecuta
+como el propietario del documento, por lo que puede leerla aunque esté protegida
+para otros editores.
+
+## Importante
+
+La aplicación web continúa usando `data/autorizados.json` solamente con hashes.
+Los nombres y empresas no se publican en GitHub.

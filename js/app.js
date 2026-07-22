@@ -1,5 +1,17 @@
+/*
+ * Control de Acceso TNP - app.js v2.0
+ *
+ * - Valida el RUT chileno.
+ * - Calcula SHA-256 y consulta data/autorizados.json.
+ * - Muestra el resultado de autorización.
+ * - Envía RUT y resultado a Google Apps Script.
+ *
+ * La nómina con nombres y empresas permanece privada en Google Sheets.
+ */
+
 let authorizedHashes = new Set();
 let clockTimer = null;
+
 const API_REGISTRO =
   "https://script.google.com/macros/s/AKfycby_vPCDenEovdtKl8U2lQuISr1pPO0M0ilnL8qac4iZ_2l4cenWfdgWOZsKpCy-Bqb2dg/exec";
 
@@ -12,14 +24,21 @@ const resultado = document.getElementById("resultado");
 const otraConsulta = document.getElementById("otra-consulta");
 
 function normalizeRut(value) {
-  return String(value || "").replace(/[^0-9kK]/g, "").toUpperCase();
+  return String(value || "")
+    .replace(/[^0-9kK]/g, "")
+    .toUpperCase();
 }
 
 function formatRut(value) {
   const rut = normalizeRut(value);
-  if (rut.length < 2) return rut;
+
+  if (rut.length < 2) {
+    return rut;
+  }
+
   const body = rut.slice(0, -1);
   const dv = rut.slice(-1);
+
   return `${body.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}-${dv}`;
 }
 
@@ -36,7 +55,7 @@ function isValidChileanRut(value) {
   let sum = 0;
   let multiplier = 2;
 
-  for (let i = body.length - 1; i >= 0; i--) {
+  for (let i = body.length - 1; i >= 0; i -= 1) {
     sum += Number(body[i]) * multiplier;
     multiplier = multiplier === 7 ? 2 : multiplier + 1;
   }
@@ -59,20 +78,33 @@ async function sha256(text) {
     .join("");
 }
 
+/*
+ * No se agrega Content-Type: application/json para evitar una solicitud
+ * CORS previa desde GitHub Pages. Apps Script procesa el cuerpo mediante
+ * e.postData.contents.
+ */
 async function registrarAcceso(rut, autorizado) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
   try {
-    await fetch(API_REGISTRO, {
+    const response = await fetch(API_REGISTRO, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
       body: JSON.stringify({
-        rut: rut,
+        rut: normalizeRut(rut),
         resultado: autorizado ? "AUTORIZADO" : "DENEGADO"
-      })
+      }),
+      signal: controller.signal
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
   } catch (error) {
+    // La bitácora no debe impedir que se muestre la validación.
     console.error("No fue posible registrar el acceso:", error);
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -81,7 +113,7 @@ function codeForCurrentWindow(rut) {
   let value = 2166136261;
   const seed = `${normalizeRut(rut)}-${windowNumber}-TNP`;
 
-  for (let i = 0; i < seed.length; i++) {
+  for (let i = 0; i < seed.length; i += 1) {
     value ^= seed.charCodeAt(i);
     value = Math.imul(value, 16777619);
   }
@@ -105,26 +137,30 @@ function localDateTime() {
 function updateGlobalClocks() {
   const parts = localDateTime();
 
-  document.getElementById("footer-date").textContent = parts.date;
-  document.getElementById("footer-time").textContent = parts.time;
-  document.getElementById("result-clock").textContent =
-    `${parts.date} · ${parts.time}`;
+  const footerDate = document.getElementById("footer-date");
+  const footerTime = document.getElementById("footer-time");
+  const resultClock = document.getElementById("result-clock");
+
+  if (footerDate) footerDate.textContent = parts.date;
+  if (footerTime) footerTime.textContent = parts.time;
+  if (resultClock) resultClock.textContent = `${parts.date} · ${parts.time}`;
 }
 
 function updateProof(rut) {
   const parts = localDateTime();
 
-  document.getElementById("codigo").textContent =
-    codeForCurrentWindow(rut);
+  const codigo = document.getElementById("codigo");
+  const hora = document.getElementById("hora");
 
-  document.getElementById("hora").textContent =
-    `${parts.date} · ${parts.time}`;
+  if (codigo) codigo.textContent = codeForCurrentWindow(rut);
+  if (hora) hora.textContent = `${parts.date} · ${parts.time}`;
 
   updateGlobalClocks();
 }
 
 function showResult(authorized, rut) {
   consulta.classList.add("hidden");
+
   resultado.className =
     `result-screen ${authorized ? "authorized" : "denied"}`;
 
@@ -171,7 +207,16 @@ async function loadAuthorizedData() {
   }
 
   const data = await response.json();
-  authorizedHashes = new Set(data.ruts);
+
+  if (!data || !Array.isArray(data.ruts)) {
+    throw new Error("El archivo de autorizados tiene un formato inválido.");
+  }
+
+  authorizedHashes = new Set(
+    data.ruts
+      .map(hash => String(hash || "").trim().toLowerCase())
+      .filter(Boolean)
+  );
 }
 
 rutInput.addEventListener("input", () => {
@@ -192,19 +237,22 @@ form.addEventListener("submit", async event => {
 
   submitButton.disabled = true;
   submitButton.textContent = "VALIDANDO…";
+  errorBox.textContent = "";
 
   try {
     const rutHash = await sha256(rut);
 
     await new Promise(resolve => setTimeout(resolve, 450));
 
-    const autorizado = authorizedHashes.has(rutHash);
+    const autorizado = authorizedHashes.has(rutHash.toLowerCase());
 
     showResult(autorizado, rut);
 
-    await registrarAcceso(rut, autorizado);
-    
-  } catch {
+    // No bloquea la respuesta visual mientras registra la bitácora.
+    void registrarAcceso(rut, autorizado);
+  } catch (error) {
+    console.error("Error durante la validación:", error);
+
     errorBox.textContent =
       "No fue posible realizar la consulta. Intente nuevamente.";
   } finally {
@@ -216,6 +264,7 @@ form.addEventListener("submit", async event => {
 otraConsulta.addEventListener("click", () => {
   if (clockTimer) {
     clearInterval(clockTimer);
+    clockTimer = null;
   }
 
   resultado.classList.add("hidden");
@@ -232,7 +281,9 @@ otraConsulta.addEventListener("click", () => {
 updateGlobalClocks();
 setInterval(updateGlobalClocks, 1000);
 
-loadAuthorizedData().catch(() => {
+loadAuthorizedData().catch(error => {
+  console.error("Error al cargar la nómina:", error);
+
   errorBox.textContent =
     "La nómina no pudo cargarse. Contacte al responsable.";
 
