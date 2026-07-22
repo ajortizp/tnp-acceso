@@ -1,5 +1,7 @@
 let authorizedHashes = new Set();
 let clockTimer = null;
+const API_REGISTRO =
+  "https://script.google.com/macros/s/AKfycby_vPCDenEovdtKl8U2lQuISr1pPO0M0ilnL8qac4iZ_2l4cenWfdgWOZsKpCy-Bqb2dg/exec";
 
 const form = document.getElementById("form-rut");
 const rutInput = document.getElementById("rut");
@@ -55,6 +57,23 @@ async function sha256(text) {
   return Array.from(new Uint8Array(buffer))
     .map(byte => byte.toString(16).padStart(2, "0"))
     .join("");
+}
+
+async function registrarAcceso(rut, autorizado) {
+  try {
+    await fetch(API_REGISTRO, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        rut: rut,
+        resultado: autorizado ? "AUTORIZADO" : "DENEGADO"
+      })
+    });
+  } catch (error) {
+    console.error("No fue posible registrar el acceso:", error);
+  }
 }
 
 function codeForCurrentWindow(rut) {
@@ -179,7 +198,12 @@ form.addEventListener("submit", async event => {
 
     await new Promise(resolve => setTimeout(resolve, 450));
 
-    showResult(authorizedHashes.has(rutHash), rut);
+    const autorizado = authorizedHashes.has(rutHash);
+
+    showResult(autorizado, rut);
+
+    await registrarAcceso(rut, autorizado);
+    
   } catch {
     errorBox.textContent =
       "No fue posible realizar la consulta. Intente nuevamente.";
