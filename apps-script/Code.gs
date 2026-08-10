@@ -1,44 +1,53 @@
-function normalizarRut(valor) {
-  return String(valor || "")
-    .replace(/[^0-9kK]/g, "")
-    .toUpperCase();
+const SPREADSHEET_ID = "13EBGEDRvmEAGtBwMFmbbl7-msEjXQFlEdToJyTxATjM";
+const HOJA_NOMINA = "Nomina";
+const HOJA_BITACORA = "Bitacora Accesos";
+
+function obtenerLibro() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
 }
 
-function formatearRut(valor) {
-  const rut = normalizarRut(valor);
+function normalizarDocumento(valor) {
+  return String(valor || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+}
 
-  if (rut.length < 2) {
-    return rut;
+function esRutChileno(valor) {
+  const rut = normalizarDocumento(valor);
+  return /^\d{7,8}[0-9K]$/.test(rut);
+}
+
+function formatearDocumento(valor) {
+  const documento = normalizarDocumento(valor);
+
+  // Solo aplica formato de RUT cuando tiene estructura de RUT chileno.
+  if (!esRutChileno(documento)) {
+    return documento;
   }
 
-  const cuerpo = rut.slice(0, -1);
-  const dv = rut.slice(-1);
-
+  const cuerpo = documento.slice(0, -1);
+  const dv = documento.slice(-1);
   return cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "-" + dv;
 }
 
-function buscarPersona(rutBuscado) {
-  const libro = SpreadsheetApp.getActiveSpreadsheet();
-  const hojaNomina = libro.getSheetByName("Nomina");
+function buscarPersona(documentoBuscado) {
+  const libro = obtenerLibro();
+  const hojaNomina = libro.getSheetByName(HOJA_NOMINA);
 
   if (!hojaNomina) {
-    throw new Error('No existe la pestaña "Nomina".');
+    throw new Error(`No existe la pestaña "${HOJA_NOMINA}".`);
   }
 
   const ultimaFila = hojaNomina.getLastRow();
+  if (ultimaFila < 2) return null;
 
-  if (ultimaFila < 2) {
-    return null;
-  }
-
-  const datos = hojaNomina
-    .getRange(2, 1, ultimaFila - 1, 3)
-    .getValues();
-
-  const rutNormalizado = normalizarRut(rutBuscado);
+  // A = RUT/Documento, B = Nombre, C = Empresa
+  const datos = hojaNomina.getRange(2, 1, ultimaFila - 1, 3).getValues();
+  const documentoNormalizado = normalizarDocumento(documentoBuscado);
 
   for (const fila of datos) {
-    if (normalizarRut(fila[0]) === rutNormalizado) {
+    if (normalizarDocumento(fila[0]) === documentoNormalizado) {
       return {
         usuario: String(fila[1] || "").trim(),
         empresa: String(fila[2] || "").trim()
@@ -53,18 +62,12 @@ function generarFolio(hoja, ahora) {
   const zona = Session.getScriptTimeZone();
   const fechaFolio = Utilities.formatDate(ahora, zona, "yyyyMMdd");
   const prefijo = "TNP-" + fechaFolio + "-";
-
   const ultimaFila = hoja.getLastRow();
   let correlativo = 1;
 
   if (ultimaFila >= 2) {
-    const folios = hoja
-      .getRange(2, 1, ultimaFila - 1, 1)
-      .getValues()
-      .flat();
-
-    correlativo =
-      folios.filter(folio => String(folio).startsWith(prefijo)).length + 1;
+    const folios = hoja.getRange(2, 1, ultimaFila - 1, 1).getValues().flat();
+    correlativo = folios.filter(folio => String(folio).startsWith(prefijo)).length + 1;
   }
 
   return prefijo + String(correlativo).padStart(6, "0");
@@ -82,11 +85,11 @@ function doPost(e) {
   try {
     bloqueo.waitLock(10000);
 
-    const libro = SpreadsheetApp.getActiveSpreadsheet();
-    const hojaBitacora = libro.getSheetByName("Bitacora Accesos");
+    const libro = obtenerLibro();
+    const hojaBitacora = libro.getSheetByName(HOJA_BITACORA);
 
     if (!hojaBitacora) {
-      throw new Error('No existe la pestaña "Bitacora Accesos".');
+      throw new Error(`No existe la pestaña "${HOJA_BITACORA}".`);
     }
 
     if (!e || !e.postData || !e.postData.contents) {
@@ -94,23 +97,21 @@ function doPost(e) {
     }
 
     const datos = JSON.parse(e.postData.contents);
-    const rut = normalizarRut(datos.rut);
-    const resultado = String(datos.resultado || "SIN RESULTADO")
-      .trim()
-      .toUpperCase();
+    const documento = normalizarDocumento(datos.rut || datos.documento);
 
-    if (!rut) {
-      throw new Error("No se recibió un RUT.");
+    if (!documento) {
+      throw new Error("No se recibió un RUT o documento.");
     }
 
-    const persona = buscarPersona(rut);
-
+    // La hoja Nomina pasa a ser la confirmación de identidad del servidor.
+    const persona = buscarPersona(documento);
+    const autorizado = Boolean(persona);
+    const resultado = autorizado ? "AUTORIZADO" : "DENEGADO";
     const usuario = persona ? persona.usuario : "NO IDENTIFICADO";
     const empresa = persona ? persona.empresa : "NO IDENTIFICADA";
 
     const ahora = new Date();
     const zona = Session.getScriptTimeZone();
-
     const fecha = Utilities.formatDate(ahora, zona, "dd-MM-yyyy");
     const hora = Utilities.formatDate(ahora, zona, "HH:mm:ss");
     const folio = generarFolio(hojaBitacora, ahora);
@@ -119,7 +120,7 @@ function doPost(e) {
       folio,
       fecha,
       hora,
-      formatearRut(rut),
+      formatearDocumento(documento),
       resultado,
       usuario,
       empresa
@@ -128,32 +129,26 @@ function doPost(e) {
     return responder({
       status: "ok",
       folio,
+      resultado,
+      autorizado,
       usuario,
-      empresa
+      empresa,
+      documento: formatearDocumento(documento)
     });
 
   } catch (error) {
-    return responder({
-      status: "error",
-      message: error.message
-    });
-
+    return responder({ status: "error", message: error.message });
   } finally {
     try {
       bloqueo.releaseLock();
-    } catch (_) {
-      // El bloqueo puede no haberse adquirido si ocurrió un error temprano.
-    }
+    } catch (_) {}
   }
 }
 
 function probarRegistro() {
   const evento = {
     postData: {
-      contents: JSON.stringify({
-        rut: "11639043-4",
-        resultado: "PRUEBA"
-      })
+      contents: JSON.stringify({ rut: "11639043-4" })
     }
   };
 
