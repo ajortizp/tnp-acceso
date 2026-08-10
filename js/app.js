@@ -100,22 +100,10 @@ function isValidChileanRut(value) {
 function isValidDocument(value) {
   const doc = normalizeRut(value);
 
-  // Si es un RUT chileno válido, se acepta.
   if (isValidChileanRut(doc)) {
     return true;
   }
 
-  /*
-   * Documento extranjero.
-   *
-   * Se permiten:
-   * - Letras A-Z
-   * - Números 0-9
-   * - Entre 5 y 20 caracteres
-   *
-   * Los puntos, guiones y espacios ya fueron eliminados
-   * por normalizeRut().
-   */
   return /^[A-Z0-9]{5,20}$/.test(doc);
 }
 
@@ -139,63 +127,48 @@ async function sha256(text) {
 
 
 /* =========================================================
- * REGISTRO EN APPS SCRIPT
+ * REGISTRO / CONSULTA EN APPS SCRIPT
  * ========================================================= */
 
-/*
- * No se agrega Content-Type: application/json para evitar
- * una solicitud CORS previa desde GitHub Pages.
- *
- * Apps Script procesa el cuerpo mediante:
- * e.postData.contents
- */
-
-async function registrarAcceso(rut, autorizado) {
+async function registrarAcceso(rut, autorizadoLocal) {
   const controller = new AbortController();
-
-  const timeoutId = setTimeout(
-    () => controller.abort(),
-    8000
-  );
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
 
   try {
     const response = await fetch(API_REGISTRO, {
       method: "POST",
-
       body: JSON.stringify({
         rut: normalizeRut(rut),
-
-        resultado:
-          autorizado
-            ? "AUTORIZADO"
-            : "DENEGADO"
+        resultadoLocal: autorizadoLocal ? "AUTORIZADO" : "DENEGADO"
       }),
-
       signal: controller.signal
     });
 
     if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data || data.status !== "ok") {
       throw new Error(
-        `HTTP ${response.status}`
+        data?.message ||
+        "Respuesta inválida de Apps Script."
       );
     }
 
+    return data;
+
   } catch (error) {
-
-    /*
-     * La bitácora no debe impedir que se muestre
-     * la validación al usuario.
-     */
-
     console.error(
-      "No fue posible registrar el acceso:",
+      "No fue posible registrar/consultar el acceso:",
       error
     );
 
+    return null;
+
   } finally {
-
     clearTimeout(timeoutId);
-
   }
 }
 
@@ -330,7 +303,8 @@ function updateProof(rut) {
 
 function showResult(
   authorized,
-  rut
+  rut,
+  persona = null
 ) {
 
   consulta.classList.add(
@@ -396,12 +370,6 @@ function showResult(
 
   /* =====================================================
    * IDENTIFICACIÓN MOSTRADA
-   *
-   * Si corresponde a un RUT chileno:
-   * 12.345.678-9
-   *
-   * Si corresponde a documento extranjero:
-   * AB123456
    * ===================================================== */
 
   const esRutChileno =
@@ -415,6 +383,57 @@ function showResult(
       ? `RUT validado: ${formatRut(rut)}`
 
       : `Documento validado: ${rut}`;
+
+
+  /* =====================================================
+   * NOMBRE Y EMPRESA
+   * ===================================================== */
+
+  const datosPersona =
+    document.getElementById(
+      "datos-persona"
+    );
+
+  const personaNombre =
+    document.getElementById(
+      "persona-nombre"
+    );
+
+  const personaEmpresa =
+    document.getElementById(
+      "persona-empresa"
+    );
+
+
+  if (
+    authorized &&
+    persona &&
+    persona.usuario
+  ) {
+
+    personaNombre.textContent =
+      persona.usuario;
+
+    personaEmpresa.textContent =
+      persona.empresa ||
+      "Empresa no informada";
+
+    datosPersona.classList.remove(
+      "hidden"
+    );
+
+  } else {
+
+    personaNombre.textContent =
+      "";
+
+    personaEmpresa.textContent =
+      "";
+
+    datosPersona.classList.add(
+      "hidden"
+    );
+  }
 
 
   /* ---------- RELOJ ---------- */
@@ -527,9 +546,8 @@ rutInput.addEventListener(
 
     /*
      * Si solamente contiene números,
-     * K, puntos o guion, asumimos que
-     * el usuario está escribiendo un RUT
-     * chileno y aplicamos el formato.
+     * K, puntos o guion,
+     * se formatea como RUT.
      */
 
     if (
@@ -543,13 +561,6 @@ rutInput.addEventListener(
 
     }
 
-
-    /*
-     * Si contiene otra letra,
-     * se considera potencialmente
-     * un documento extranjero y
-     * NO se formatea como RUT.
-     */
 
     rutInput.value =
       value;
@@ -572,20 +583,6 @@ form.addEventListener(
 
     event.preventDefault();
 
-
-    /*
-     * Normalización:
-     *
-     * RUT:
-     * 12.345.678-9
-     * ↓
-     * 123456789
-     *
-     * Documento:
-     * AB-123456
-     * ↓
-     * AB123456
-     */
 
     const rut =
       normalizeRut(
@@ -623,17 +620,12 @@ form.addEventListener(
     try {
 
       /*
-       * El hash siempre se calcula
-       * sobre el documento normalizado.
+       * SHA-256 sobre documento normalizado.
        */
 
       const rutHash =
         await sha256(rut);
 
-
-      /*
-       * Pequeña espera visual.
-       */
 
       await new Promise(
         resolve =>
@@ -645,8 +637,7 @@ form.addEventListener(
 
 
       /*
-       * Busca el SHA-256 dentro de
-       * autorizados.json.
+       * Validación local contra autorizados.json
        */
 
       const autorizado =
@@ -655,24 +646,45 @@ form.addEventListener(
         );
 
 
-      /* ---------- RESULTADO ---------- */
+      /*
+       * Apps Script:
+       *
+       * - consulta la hoja Nomina
+       * - confirma identidad
+       * - registra la bitácora
+       * - devuelve Nombre y Empresa
+       */
 
-      showResult(
-        autorizado,
-        rut
-      );
+      const respuestaServidor =
+        await registrarAcceso(
+          rut,
+          autorizado
+        );
 
 
       /*
-       * El registro en la bitácora
-       * ocurre en segundo plano.
+       * Si Apps Script responde,
+       * su resultado contra Nomina
+       * se considera definitivo.
        *
-       * No bloquea la respuesta visual.
+       * Si temporalmente no responde,
+       * se conserva la validación local
+       * mediante SHA-256.
        */
 
-      void registrarAcceso(
+      const autorizadoFinal =
+        respuestaServidor
+
+          ? respuestaServidor.resultado ===
+            "AUTORIZADO"
+
+          : autorizado;
+
+
+      showResult(
+        autorizadoFinal,
         rut,
-        autorizado
+        respuestaServidor
       );
 
 
