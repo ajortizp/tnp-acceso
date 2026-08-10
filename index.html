@@ -30,13 +30,13 @@
           </svg>
         </div>
 
-        <h2>INGRESA TU RUT</h2>
+        <h2>INGRESA TU RUT O DOCUMENTO</h2>
         <p class="instructions">
-          Escribe tu RUT y presiona validar para verificar tu autorización de acceso.
+          Escribe tu RUT o documento de identificación y presiona validar para verificar tu autorización de acceso.
         </p>
 
         <form id="form-rut" novalidate>
-          <label for="rut">RUT <span>(con o sin puntos y guion)</span></label>
+          <label for="rut">RUT / DOCUMENTO <span>(con o sin puntos, guion o letras)</span></label>
 
           <div class="input-wrap">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -52,8 +52,8 @@
               autocomplete="off"
               autocapitalize="characters"
               spellcheck="false"
-              placeholder="Ej: 12.345.678-9"
-              maxlength="14"
+              placeholder="Ej: 12.345.678-9 o AB123456"
+              maxlength="20"
               required
             >
           </div>
@@ -71,7 +71,7 @@
             <strong>INFORMACIÓN IMPORTANTE</strong>
           </div>
           <ul>
-            <li>La validación confirma si el RUT aparece en la nómina autorizada.</li>
+            <li>La validación confirma si el RUT o documento aparece en la nómina autorizada.</li>
             <li>Si no está autorizado, dirígete al punto de registro manual.</li>
           </ul>
         </aside>
@@ -125,7 +125,7 @@
 
         <div class="identity-check">
           <strong>VERIFICACIÓN DE IDENTIDAD</strong>
-          <p>El personal de seguridad debe comparar este RUT con la cédula del trabajador.</p>
+          <p>El personal de seguridad debe comparar el RUT o documento con la identificación presentada.</p>
           <p id="rut-masked" class="masked"></p>
         </div>
 
